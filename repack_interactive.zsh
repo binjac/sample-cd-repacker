@@ -6,29 +6,27 @@ set -euo pipefail
 # ────────────────────────────────────────────────
 echo "Enter the full path of the sample pack you want to repack:"
 read -r PACK_PATH
-# strip optional quotes if user typed or pasted them
-PACK_PATH="${PACK_PATH#\'}"
-PACK_PATH="${PACK_PATH%\'}"
-PACK_PATH="${PACK_PATH#\"}"
-PACK_PATH="${PACK_PATH%\"}"
-PACK_PATH="$(echo "$PACK_PATH" | sed 's/^[[:space:]]*//; s/[[:space:]]*$//')"  # trim spaces
+
+# Strip optional quotes / surrounding spaces (handles drag-and-drop too)
+PACK_PATH="${PACK_PATH#\'}"; PACK_PATH="${PACK_PATH%\'}"
+PACK_PATH="${PACK_PATH#\"}"; PACK_PATH="${PACK_PATH%\"}"
+PACK_PATH="$(echo "$PACK_PATH" | sed 's/^[[:space:]]*//; s/[[:space:]]*$//')"
 
 [[ -z "$PACK_PATH" ]] && { echo "❌ No path given."; exit 1; }
 [[ ! -d "$PACK_PATH" ]] && { echo "❌ Folder not found: $PACK_PATH"; exit 1; }
 
+# Resolve to absolute path and key paths
 PACK_PATH="$(realpath "$PACK_PATH")"
 PACK_NAME="$(basename "$PACK_PATH")"
 OUT_ROOT="${PACK_PATH%/}/REPACKED"
 OUT_DIR="$OUT_ROOT/$PACK_NAME"
-
 mkdir -p "$OUT_DIR"
 
-# Ask for options
-echo "Normalize audio? (y/n) [y]"
+echo "Normalize audio (peak to 0 dBFS, no clipping)? (y/n) [y]"
 read -r norm_choice
 [[ "${norm_choice:l}" != "n" ]] && NORMALIZE=true || NORMALIZE=false
 
-echo "Trim silence? (y/n) [n]"
+echo "Trim leading/trailing silence (soft)? (y/n) [n]"
 read -r trim_choice
 [[ "${trim_choice:l}" == "y" ]] && TRIM=true || TRIM=false
 
@@ -44,12 +42,32 @@ $TRIM && SOX_FX+=("silence" "1" "0.01" "0.5%" "reverse" "silence" "1" "0.01" "0.
 log() { print -r -- "• $*"; }
 
 # ────────────────────────────────────────────────
-#  🧠  Helper functions
+#  🧠  Helper functions (robust rel-path & partition stripping)
 # ────────────────────────────────────────────────
-sanitize_path() {
-  # remove “Partition …” from relative paths
-  local path="$1"
-  local rel="${path#$PACK_PATH/}"
+
+# Return a path relative to PACK_PATH ("" if equals PACK_PATH)
+rel_to_pack() {
+  local p_abs="$(realpath "$1")"
+  local pack_abs="$PACK_PATH"
+  # If it's exactly the pack dir
+  if [[ "$p_abs" == "$pack_abs" ]]; then
+    print -r -- ""
+    return 0
+  fi
+  # Ensure trailing slash on prefix removal
+  local with_slash="$pack_abs/"
+  # If p_abs starts with pack_abs + '/', strip it; else, just return basename
+  if [[ "$p_abs" == $with_slash* ]]; then
+    print -r -- "${p_abs#$with_slash}"
+  else
+    # Fallback (shouldn't happen): return basename to avoid absolute leakage
+    print -r -- "$(basename "$p_abs")"
+  fi
+}
+
+# Remove any path components starting with "Partition " (case-insensitive)
+strip_partitions_from_rel() {
+  local rel="$1"
   local IFS='/'
   local -a parts out
   parts=(${rel})
@@ -60,14 +78,20 @@ sanitize_path() {
     fi
     out+=("$p")
   done
-  echo "${(j:/:)out}"
+  print -r -- "${(j:/:)out}"
 }
 
-# find immediate folder name (used for prefixing duplicates)
-parent_folder_name() {
-  local p="$1"
-  echo "$(basename "$(dirname "$p")")"
+# Build a clean relative directory (never absolute; may be "")
+clean_rel_dir_from_absdir() {
+  local absdir="$1"
+  local rel="$(rel_to_pack "$absdir")"          # may be ""
+  local stripped="$(strip_partitions_from_rel "$rel")"
+  # If empty (root of pack after stripping), return "" and caller will map to $PACK_NAME
+  print -r -- "$stripped"
 }
+
+# For duplicate handling (prefix with immediate parent folder)
+parent_folder_name() { basename "$(dirname "$1")"; }
 
 # ────────────────────────────────────────────────
 #  🔄  Process -L / -R stereo pairs
@@ -75,62 +99,79 @@ parent_folder_name() {
 typeset -A seen_names
 
 while IFS= read -r -d '' L; do
-  R="${L%-L.wav}-R.wav"
-  if [[ ! -f "$R" ]]; then
-    continue
-  fi
+  # Compute companion R (keeps any spaces before -L/-R)
+  local R="${L%-L.wav}-R.wav"
+  [[ -f "$R" ]] || continue
 
-  rel_clean="$(sanitize_path "$(dirname "$L")")"
-  out_dir="$OUT_DIR/$rel_clean"
+  # Clean relative dir (based on directory of L)
+  local rel_dir="$(clean_rel_dir_from_absdir "$(dirname "$L")")"
+  # Ensure files always go under OUT_DIR/PACK_NAME if rel_dir is empty
+  if [[ -z "$rel_dir" || "$rel_dir" == "." ]]; then
+    rel_dir="$PACK_NAME"
+  fi
+  local out_dir="$OUT_DIR/$rel_dir"
   mkdir -p "$out_dir"
 
-  base="$(basename "$L")"
-  stem="$(print -r -- "$base" | sed -E 's/[[:space:]]*-L\.wav$//')"
-  name_no_ext="${stem%.*}"
+  local base="$(basename "$L")"
+  # Stem without the "   -L.wav" (handles odd spaces)
+  local stem="$(print -r -- "$base" | sed -E 's/[[:space:]]*-L\.wav$//')"
+  local name_no_ext="${stem%.*}"
 
-  # handle duplicates
+  # Handle duplicates across the whole run
+  local prefix=""
   if [[ -n "${seen_names[$name_no_ext]:-}" ]]; then
     prefix="$(parent_folder_name "$L")_"
   else
-    prefix=""
     seen_names[$name_no_ext]=1
   fi
 
-  out_file="$out_dir/${prefix}${name_no_ext}.wav"
+  local out_file="$out_dir/${prefix}${name_no_ext}.wav"
 
   log "Stereo  :: ${L#$PACK_PATH/} + ${R#$PACK_PATH/} → ${out_file#$OUT_DIR/}"
-  sox -V1 -G -M "$L" "$R" "$out_file" "${SOX_FX[@]}" || true
+  if (( ${#SOX_FX[@]} )); then
+    sox -V1 -G -M "$L" "$R" "$out_file" "${SOX_FX[@]}"
+  else
+    sox -V1 -G -M "$L" "$R" "$out_file"
+  fi
 done < <(find "$PACK_PATH" -type f -name "*-L.wav" -print0)
 
 # ────────────────────────────────────────────────
-#  📦  Copy mono WAVs (no -L/-R)
+#  📦  Copy mono WAVs (no -L/-R), preserving clean structure
 # ────────────────────────────────────────────────
 while IFS= read -r -d '' F; do
   [[ "$F" == *"-L.wav" || "$F" == *"-R.wav" ]] && continue
 
-  rel_clean="$(sanitize_path "$F")"
-  out_path="$OUT_DIR/$rel_clean"
-  mkdir -p "$(dirname "$out_path")"
+  # Use the directory of the file to compute a clean relative dir
+  local rel_dir="$(clean_rel_dir_from_absdir "$(dirname "$F")")"
+  if [[ -z "$rel_dir" || "$rel_dir" == "." ]]; then
+    rel_dir="$PACK_NAME"
+  fi
+  local out_dir="$OUT_DIR/$rel_dir"
+  mkdir -p "$out_dir"
 
-  base="$(basename "$F")"
-  name_no_ext="${base%.*}"
+  local base="$(basename "$F")"
+  local name_no_ext="${base%.*}"
 
-  # handle duplicates again
+  local prefix=""
   if [[ -n "${seen_names[$name_no_ext]:-}" ]]; then
     prefix="$(parent_folder_name "$F")_"
   else
-    prefix=""
     seen_names[$name_no_ext]=1
   fi
 
-  out_file="$(dirname "$out_path")/${prefix}${base}"
+  local out_file="$out_dir/${prefix}${base}"
 
   log "Copy    :: ${F#$PACK_PATH/} → ${out_file#$OUT_DIR/}"
-  sox -V1 -G "$F" "$out_file" "${SOX_FX[@]}" || cp -p "$F" "$out_file"
+  if (( ${#SOX_FX[@]} )); then
+    # Process through sox to apply normalize/trim if requested
+    sox -V1 -G "$F" "$out_file" "${SOX_FX[@]}"
+  else
+    cp -p "$F" "$out_file"
+  fi
 done < <(find "$PACK_PATH" -type f -name "*.wav" -print0)
 
 # ────────────────────────────────────────────────
-#  🗂️  CSV Index
+#  🗂️  CSV Index (for the cleaned tree only)
 # ────────────────────────────────────────────────
 INDEX="$OUT_DIR/index.csv"
 echo "path,channels,samplerate,bitdepth,duration_sec,basename" > "$INDEX"
