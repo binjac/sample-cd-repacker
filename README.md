@@ -1,6 +1,6 @@
 # 🧠 sample-cd-repacker
 
-![DifFkr4gFv4ySZTQ4W7jqg]([https://github.com/user-attachments/assets/eeb23273-9555-4f14-9dd1-0fa71ebfa0f0](https://www.musicradar.com/news/10-classic-sample-packs-changed-electronic-music-1))
+![Old Sample CDs Collage](https://www.musicradar.com/news/10-classic-sample-packs-changed-electronic-music-1)
 
 A small command-line helper for repacking old 80s–90s sample CDs into clean, usable WAV folders.  
 It automatically merges left/right stereo pairs (`-L.wav` / `-R.wav`), flattens weird “Partition A/B/C” folder structures,  
