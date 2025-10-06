@@ -30,6 +30,10 @@ echo "Trim leading/trailing silence (soft)? (y/n) [n]"
 read -r trim_choice
 [[ "${trim_choice:l}" == "y" ]] && TRIM=true || TRIM=false
 
+echo "Keep original subfolders (except 'Partition *')? (y = keep tree / n = flatten with parent prefix) [y]"
+read -r org_choice
+[[ "${org_choice:l}" != "n" ]] && KEEP_TREE=true || KEEP_TREE=false
+
 # ────────────────────────────────────────────────
 #  ⚙️  Sox setup
 # ────────────────────────────────────────────────
@@ -42,7 +46,7 @@ $TRIM && SOX_FX+=("silence" "1" "0.01" "0.5%" "reverse" "silence" "1" "0.01" "0.
 log() { print -r -- "• $*"; }
 
 # ────────────────────────────────────────────────
-#  🧠  Helper functions
+#  🧠  Helpers
 # ────────────────────────────────────────────────
 rel_to_pack() {
   local p_abs="$(realpath "$1")"
@@ -75,6 +79,7 @@ strip_partitions_from_rel() {
 }
 
 clean_rel_dir_from_absdir() {
+  # returns a relative directory (may be ""), with Partition* removed
   local absdir="$1"
   local rel="$(rel_to_pack "$absdir")"
   local stripped="$(strip_partitions_from_rel "$rel")"
@@ -82,6 +87,44 @@ clean_rel_dir_from_absdir() {
 }
 
 parent_folder_name() { basename "$(dirname "$1")"; }
+
+# Safe prefix for filenames (keep spaces, strip slashes)
+safe_prefix() { print -r -- "$(echo "$1" | tr '/' '_' )"; }
+
+# Decide output directory + filename prefixing strategy
+decide_out_dir_and_prefix() {
+  # args: src_file -> echoes "OUTDIR|PREFIX"
+  local src="$1"
+  local parent="$(parent_folder_name "$src")"
+  local rel_dir="$(clean_rel_dir_from_absdir "$(dirname "$src")")"
+
+  local outd prefix
+  if $KEEP_TREE; then
+    # keep subfolders (minus Partition*)
+    if [[ -z "$rel_dir" || "$rel_dir" == "." ]]; then
+      outd="$OUT_DIR"          # root of pack in REPACKED
+    else
+      outd="$OUT_DIR/$rel_dir" # preserved sub-tree
+    fi
+    prefix=""                  # no filename prefix needed
+  else
+    # flatten into OUT_DIR, but prefix with parent folder to keep grouping
+    outd="$OUT_DIR"
+    prefix="$(safe_prefix "$parent")_"
+  fi
+
+  print -r -- "$outd|$prefix"
+}
+
+# Only run sox if FX were requested; otherwise just copy (avoids hangs on quirky WAVs)
+copy_or_process() {
+  local in="$1" out="$2"
+  if (( ${#SOX_FX[@]} )); then
+    sox -V1 -G "$in" "$out" "${SOX_FX[@]}" || cp -p "$in" "$out"
+  else
+    cp -p "$in" "$out"
+  fi
+}
 
 # ────────────────────────────────────────────────
 #  🔄  Process -L / -R stereo pairs
@@ -92,29 +135,29 @@ while IFS= read -r -d '' L; do
   R="${L%-L.wav}-R.wav"
   [[ -f "$R" ]] || continue
 
-  rel_dir="$(clean_rel_dir_from_absdir "$(dirname "$L")")"
-  if [[ -z "$rel_dir" || "$rel_dir" == "." ]]; then
-    out_dir="$OUT_DIR"
-  else
-    out_dir="$OUT_DIR/$rel_dir"
-  fi
+  IFS='|' read -r out_dir name_prefix <<<"$(decide_out_dir_and_prefix "$L")"
   mkdir -p "$out_dir"
 
   base="$(basename "$L")"
   stem="$(print -r -- "$base" | sed -E 's/[[:space:]]*-L\.wav$//')"
   name_no_ext="${stem%.*}"
 
+  # handle duplicate base names across the whole run
   if [[ -n "${seen_names[$name_no_ext]:-}" ]]; then
-    prefix="$(parent_folder_name "$L")_"
+    [[ -z "$name_prefix" ]] && name_prefix="$(safe_prefix "$(parent_folder_name "$L")")_"
   else
     seen_names[$name_no_ext]=1
-    prefix=""
   fi
 
-  out_file="$out_dir/${prefix}${name_no_ext}.wav"
+  out_file="$out_dir/${name_prefix}${name_no_ext}.wav"
 
   log "Stereo  :: ${L#$PACK_PATH/} + ${R#$PACK_PATH/} → ${out_file#$OUT_DIR/}"
-  sox -V1 -G -M "$L" "$R" "$out_file" "${SOX_FX[@]}" || true
+  if (( ${#SOX_FX[@]} )); then
+    sox -V1 -G -M "$L" "$R" "$out_file" "${SOX_FX[@]}" || true
+  else
+    # no FX: just merge channels fast & safe
+    sox -V1 -G -M "$L" "$R" "$out_file" || true
+  fi
 done < <(find "$PACK_PATH" -type f -name "*-L.wav" ! -path "*/REPACKED/*" -print0)
 
 # ────────────────────────────────────────────────
@@ -123,42 +166,37 @@ done < <(find "$PACK_PATH" -type f -name "*-L.wav" ! -path "*/REPACKED/*" -print
 while IFS= read -r -d '' F; do
   [[ "$F" == *"-L.wav" || "$F" == *"-R.wav" ]] && continue
 
-  rel_dir="$(clean_rel_dir_from_absdir "$(dirname "$F")")"
-  if [[ -z "$rel_dir" || "$rel_dir" == "." ]]; then
-    out_dir="$OUT_DIR"
-  else
-    out_dir="$OUT_DIR/$rel_dir"
-  fi
+  IFS='|' read -r out_dir name_prefix <<<"$(decide_out_dir_and_prefix "$F")"
   mkdir -p "$out_dir"
 
   base="$(basename "$F")"
   name_no_ext="${base%.*}"
 
   if [[ -n "${seen_names[$name_no_ext]:-}" ]]; then
-    prefix="$(parent_folder_name "$F")_"
+    [[ -z "$name_prefix" ]] && name_prefix="$(safe_prefix "$(parent_folder_name "$F")")_"
   else
     seen_names[$name_no_ext]=1
-    prefix=""
   fi
 
-  out_file="$out_dir/${prefix}${base}"
+  out_file="$out_dir/${name_prefix}${base}"
 
   log "Copy    :: ${F#$PACK_PATH/} → ${out_file#$OUT_DIR/}"
-  sox -V1 -G "$F" "$out_file" "${SOX_FX[@]}" || cp -p "$F" "$out_file"
+  copy_or_process "$F" "$out_file"
 done < <(find "$PACK_PATH" -type f -name "*.wav" ! -path "*/REPACKED/*" -print0)
 
 # ────────────────────────────────────────────────
-#  🗂️  CSV Index
+#  🗂️  CSV Index (global at REPACKED root)
 # ────────────────────────────────────────────────
-INDEX="$OUT_DIR/index.csv"
-echo "path,channels,samplerate,bitdepth,duration_sec,basename" > "$INDEX"
+INDEX="$OUT_ROOT/index.csv"
+echo "pack_name,path,channels,samplerate,bitdepth,duration_sec,basename" > "$INDEX"
+
 while IFS= read -r -d '' f; do
   ch=$(sox --i -c "$f" 2>/dev/null || echo "?")
   sr=$(sox --i -r "$f" 2>/dev/null || echo "?")
   bd=$(sox --i -b "$f" 2>/dev/null || echo "?")
   du=$(sox --i -D "$f" 2>/dev/null || echo "?")
   bn="$(basename "$f")"
-  echo "$f,$ch,$sr,$bd,$du,$bn" >> "$INDEX"
+  echo "$PACK_NAME,$f,$ch,$sr,$bd,$du,$bn" >> "$INDEX"
 done < <(find "$OUT_DIR" -type f -name "*.wav" -print0)
 
 # ────────────────────────────────────────────────
@@ -166,5 +204,5 @@ done < <(find "$OUT_DIR" -type f -name "*.wav" -print0)
 # ────────────────────────────────────────────────
 echo
 echo "✅ Repacking complete!"
-echo "📁 Output: $OUT_DIR"
-echo "📄 Index file: $INDEX"
+echo "📁 Output folder: $OUT_DIR"
+echo "📄 Index file (global): $INDEX"
