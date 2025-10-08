@@ -47,3 +47,35 @@ chmod +x repack_interactive.zsh
 # Run it (it will guide you interactively)
 ./repack_interactive.zsh
 ```
+
+### Install via Homebrew (tap)
+
+Once you publish a tag and create a tap `binjac/homebrew-audio-tools` with the included formula, users can:
+
+```bash
+brew tap binjac/audio-tools
+brew install sample-cd-repacker
+sample-cd-repacker --help
+```
+
+### Classification helper
+
+Classify your existing samples by simple heuristics (name + duration + RMS/peak ratio) and write a `tags.csv`.
+
+```bash
+# From source
+python3 classify.py <folder> --csv REPACKED/tags.csv --preview --copy-into REPACKED/Classified
+
+# If installed via brew (wrapper script name)
+sample-cd-classify <folder> --csv REPACKED/tags.csv --copy-into REPACKED/Classified
+ 
+# Or via pipx (recommended)
+pipx install .
+sample-cd-classify <folder> --csv REPACKED/tags.csv --copy-into REPACKED/Classified
+```
+
+This will:
+- create a `REPACKED/tags.csv` with columns: `path, basename, category, confidence, duration, rms_peak_ratio`
+- optionally copy files into `REPACKED/Classified/<Category>/`
+
+Roadmap includes better spectral features (librosa/torchaudio), loop detection, pitch detection, and similarity search.

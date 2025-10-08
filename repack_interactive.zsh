@@ -2,6 +2,42 @@
 set -euo pipefail
 
 # ────────────────────────────────────────────────
+#  🏷️  Version / Help
+# ────────────────────────────────────────────────
+VERSION="0.1.0"
+
+print_usage() {
+  cat <<'USAGE'
+Sample CD Repacker
+
+Usage:
+  ./repack_interactive.zsh           # interactive mode
+  ./repack_interactive.zsh --help    # show help
+  ./repack_interactive.zsh --version # show version
+
+Description:
+  Repack old sample CDs/folders into clean WAV folders.
+  - Merges stereo pairs ("-L.wav"/"-R.wav")
+  - Optionally normalizes and trims silence
+  - Preserves or flattens folder tree
+  - Writes a global REPACKED/index.csv
+USAGE
+}
+
+if (( $# > 0 )); then
+  case "${1:-}" in
+    -h|--help)
+      print_usage
+      exit 0
+      ;;
+    -v|--version)
+      echo "$VERSION"
+      exit 0
+      ;;
+  esac
+fi
+
+# ────────────────────────────────────────────────
 #  🎛️  Interactive input
 # ────────────────────────────────────────────────
 echo "Enter the full path of the sample pack you want to repack:"
