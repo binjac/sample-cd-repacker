@@ -1,7 +1,8 @@
-# Samplem 
-A Modern Audio Repacker & Classifier Toolkit
+<img width="128px" src="cover.jpg" alt="Samplem Logo" align="left" />
 
-![Project Cover](cover.jpg)
+# Samplem
+
+A Modern Audio Repacker & Classifier Toolkit
 
 Samplem is a modular command-line toolkit for restoring, cleaning, and organizing vintage sample collections.
 Originally built to repack 80s–90s sample CDs, it has grown into a broader system for sample cleanup, normalization, tagging, and classification.
