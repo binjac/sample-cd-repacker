@@ -1,0 +1,22 @@
+[build-system]
+requires = ["hatchling>=1.18.0"]
+build-backend = "hatchling.build"
+
+[project]
+name = "sample-cd-repacker"
+version = "0.1.0"
+description = "Tools to repack vintage sample CDs and classify samples"
+readme = "README.md"
+license = { text = "MIT" }
+authors = [{ name = "Valentin Binjac" }]
+requires-python = ">=3.9"
+dependencies = []
+
+[project.scripts]
+sample-cd-classify = "classify:main"
+
+[project.urls]
+Homepage = "https://github.com/binjac/sample-cd-repacker"
+Issues = "https://github.com/binjac/sample-cd-repacker/issues"
+
+
