@@ -94,7 +94,8 @@ Samplem will evolve into a full modular audio toolkit:
 git clone https://github.com/binjac/samplem.git
 cd samplem
 chmod +x repack_interactive.zsh
-./repack_interactive.zsh
+./repack_interactive.zsh --help
+./repack_interactive.zsh --version
 ```
 
 ### Via Homebrew (recommended)
@@ -105,6 +106,10 @@ Once published to the tap `binjac/homebrew-audio-tools`, users can:
 brew tap binjac/audio-tools
 brew install samplem
 samplem --help
+samplem --version
+samplem           # interactive repack
+samplem repack    # same as default
+samplem classify <folder> --csv REPACKED/tags.csv
 ```
 
 ### Requirements

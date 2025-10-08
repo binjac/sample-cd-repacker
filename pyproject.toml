@@ -3,8 +3,8 @@ requires = ["hatchling>=1.18.0"]
 build-backend = "hatchling.build"
 
 [project]
-name = "sample-cd-repacker"
-version = "0.1.0"
+name = "samplem"
+version = "1.0.0"
 description = "Tools to repack vintage sample CDs and classify samples"
 readme = "README.md"
 license = { text = "MIT" }
@@ -16,7 +16,7 @@ dependencies = []
 sample-cd-classify = "classify:main"
 
 [project.urls]
-Homepage = "https://github.com/binjac/sample-cd-repacker"
-Issues = "https://github.com/binjac/sample-cd-repacker/issues"
+Homepage = "https://github.com/binjac/samplem"
+Issues = "https://github.com/binjac/samplem/issues"
 
 

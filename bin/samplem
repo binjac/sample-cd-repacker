@@ -1,0 +1,41 @@
+#!/usr/bin/env zsh
+set -euo pipefail
+
+case "${1:-}" in
+  repack|"")
+    # default: interactive repack
+    exec "$(dirname "$0")/../repack_interactive.zsh" "${@:2}"
+    ;;
+  classify)
+    shift
+    # prefer python module when available
+    if command -v samplem-classify >/dev/null 2>&1; then
+      exec samplem-classify "$@"
+    elif [ -f "$(dirname "$0")/../classify.py" ]; then
+      exec python3 "$(dirname "$0")/../classify.py" "$@"
+    else
+      echo "classification tool not installed" >&2
+      exit 1
+    fi
+    ;;
+  --help|-h)
+    echo "samplem - audio repacker and classifier"
+    echo
+    echo "Usage:"
+    echo "  samplem              # interactive repack"
+    echo "  samplem repack       # interactive repack"
+    echo "  samplem classify DIR [options]"
+    echo "  samplem --version"
+    exit 0
+    ;;
+  --version)
+    echo "samplem v1.0.0"
+    exit 0
+    ;;
+  *)
+    echo "unknown subcommand: $1 (try --help)" >&2
+    exit 1
+    ;;
+esac
+
+
