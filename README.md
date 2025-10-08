@@ -131,9 +131,10 @@ sudo apt install sox
 | Phase | Focus           | Description                               |
 | ----- | --------------- | ----------------------------------------- |
 | v1.0  | Repack core     | Clean, merge, normalize legacy sample CDs |
-| v1.1  | Classification  | Heuristic classification and CSV tagging  |
-| v1.2  | Pitch and tempo | Auto-key and BPM detection                |
-| v1.3  | Similarity      | Find and cluster similar samples          |
+| v1.1  | Divide sample chains  | Divide sample chains by checking transients, zero crossings and silences |
+| v1.2  | Classification  | Heuristic classification and CSV tagging  |
+| v1.3  | Pitch and tempo | Auto-key and BPM detection                |
+| v1.4  | Similarity      | Find and cluster similar samples          |
 | v2.0  | UI and database | Terminal UI and local sample index DB     |
 
 ---
