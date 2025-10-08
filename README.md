@@ -1,4 +1,4 @@
-# 🙂 90s Sample CD Repacker 💿
+# 90s Sample CD Repacker
 
 ![Project Cover](cover.jpg)
 
