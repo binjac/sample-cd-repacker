@@ -1,6 +1,15 @@
+# root
 .DS_Store
 __pycache__/
 *.pyc
 REPACKED/
 
+# Tauri project
+samplem-ui/node_modules/
+samplem-ui/dist/
+samplem-ui/.vite/
+samplem-ui/.turbo/
 
+# Rust build caches
+samplem-ui/src-tauri/target/
+samplem-ui/src-tauri/gen/

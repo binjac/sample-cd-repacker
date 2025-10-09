@@ -1,0 +1,39 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Samplem</title>
+    <link rel="stylesheet" href="/src/styles.css" />
+    <meta http-equiv="Content-Security-Policy"
+          content="default-src 'self' tauri: asset: 'unsafe-inline' 'unsafe-eval'">
+  </head>
+  <body>
+    <h1>Samplem</h1>
+
+    <div id="drop" class="drop">
+      <div>Drop a folder here or choose one</div>
+      <div class="row">
+        <input id="folder" type="text" placeholder="/path/to/folder" />
+        <button id="choose">Choose…</button>
+      </div>
+    </div>
+
+    <div class="opts">
+      <label><input id="normalize" type="checkbox" checked /> Normalize</label>
+      <label><input id="trim" type="checkbox" /> Trim silence</label>
+      <label>Layout
+        <select id="layout">
+          <option value="keep">Keep subfolders</option>
+          <option value="flat-prefix">Flat with prefix</option>
+          <option value="flat" selected>Flat</option>
+        </select>
+      </label>
+      <button id="run">Run</button>
+    </div>
+
+    <textarea id="log" readonly></textarea>
+
+    <!-- IMPORTANT: point to /src/main.ts (or ./src/main.ts) -->
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
