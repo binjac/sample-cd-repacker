@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "samplem"
-version = "1.0.0"
+version = "0.9.0"
 description = "Tools to repack vintage sample CDs and classify samples"
 readme = "README.md"
 license = { text = "MIT" }

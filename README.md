@@ -131,7 +131,8 @@ sudo apt install sox
 
 | Phase | Focus           | Description                               |
 | ----- | --------------- | ----------------------------------------- |
-| v1.0  | Repack core     | Clean, merge, normalize legacy sample CDs |
+| v0.9  | Repack core     | Clean, merge, normalize legacy sample CDs |
+| v1.0  | Homebrew accessible     | Option to install via homebrew to run standalone |
 | v1.1  | Divide sample chains  | Divide sample chains by checking transients, zero crossings and silences |
 | v1.2  | Classification  | Heuristic classification and CSV tagging  |
 | v1.3  | Pitch and tempo | Auto-key and BPM detection                |

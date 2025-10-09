@@ -1,8 +1,8 @@
 class Samplem < Formula
   desc "Audio repacker and classifier for legacy sample collections"
   homepage "https://github.com/binjac/samplem"
-  url "https://github.com/binjac/samplem/archive/refs/tags/v1.0.0.tar.gz"
-  sha256 "__FILL_ME_AFTER_TAG__"
+  url "https://github.com/binjac/samplem/archive/refs/tags/v0.9.0.tar.gz"
+  sha256 "3209c370a075c77fb4716f78f1343fea000e8012fe956a5d977dd5076a9024bf"
   license "MIT"
 
   depends_on "sox"

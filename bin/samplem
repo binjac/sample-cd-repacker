@@ -29,7 +29,7 @@ case "${1:-}" in
     exit 0
     ;;
   --version)
-    echo "samplem v1.0.0"
+    echo "samplem v0.9.0"
     exit 0
     ;;
   *)
