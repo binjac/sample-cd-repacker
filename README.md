@@ -99,31 +99,19 @@ chmod +x repack_interactive.zsh
 ./repack_interactive.zsh --version
 ```
 
-### Via Homebrew (recommended)
-
-Once published to the tap `binjac/homebrew-audio-tools`, users can:
+### Install
 
 ```bash
-brew tap binjac/audio-tools
-brew install samplem
+git clone https://github.com/binjac/samplem.git
+cd samplem
+./install.sh
 samplem --help
-samplem --version
-samplem           # interactive repack
-samplem repack    # same as default
-samplem classify <folder> --csv REPACKED/tags.csv
 ```
 
 ### Requirements
 
 * macOS or Linux with zsh
-* [SoX](http://sox.sourceforge.net/)
-  Install via:
-
-```bash
-brew install sox
-# or
-sudo apt install sox
-```
+* [SoX](http://sox.sourceforge.net/) (brew install sox or sudo apt install sox)
 
 ---
 

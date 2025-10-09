@@ -48,7 +48,7 @@ fi
 # ────────────────────────────────────────────────
 #  ⚙️  Non-interactive flags (for GUI wrappers/CI)
 # ────────────────────────────────────────────────
-# Defaults match interactive prompts: normalize=yes, trim=no, layout=flat_noprefix
+# Defaults match interactive prompts: normalize=yes, trim=no, layout=flat (alias of flat_noprefix)
 NORMALIZE=${NORMALIZE:-}
 TRIM=${TRIM:-}
 STRUCTURE_MODE=${STRUCTURE_MODE:-}
