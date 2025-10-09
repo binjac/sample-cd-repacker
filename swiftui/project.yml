@@ -1,0 +1,28 @@
+name: Samplem
+options:
+  minimumXcodeGenVersion: 2.39.0
+packages: {}
+targets:
+  Samplem:
+    type: application
+    platform: macOS
+    deploymentTarget: "12.0"
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.binjac.samplem
+        CURRENT_PROJECT_VERSION: 0.9.0
+        MARKETING_VERSION: 0.9.0
+    sources:
+      - path: Sources
+      - path: Resources
+    info:
+      path: Resources/Info.plist
+      properties:
+        CFBundleName: Samplem
+        CFBundleIdentifier: com.binjac.samplem
+        CFBundleVersion: 0.9.0
+        CFBundleShortVersionString: 0.9.0
+        LSMinimumSystemVersion: 12.0
+        NSAppTransportSecurity:
+          NSAllowsArbitraryLoads: true
+
