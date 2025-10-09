@@ -46,6 +46,59 @@ if (( $# > 0 )); then
 fi
 
 # ────────────────────────────────────────────────
+#  ⚙️  Non-interactive flags (for GUI wrappers/CI)
+# ────────────────────────────────────────────────
+# Defaults match interactive prompts: normalize=yes, trim=no, layout=flat_noprefix
+NORMALIZE=${NORMALIZE:-}
+TRIM=${TRIM:-}
+STRUCTURE_MODE=${STRUCTURE_MODE:-}
+PACK_PATH_ARG=""
+
+NORM_SET=false
+TRIM_SET=false
+LAYOUT_SET=false
+
+parse_layout_flag() {
+  case "$1" in
+    keep)
+      STRUCTURE_MODE="keep_tree"
+      ;;
+    flat-prefix)
+      STRUCTURE_MODE="flat_prefix"
+      ;;
+    flat)
+      STRUCTURE_MODE="flat_noprefix"
+      ;;
+    *)
+      echo "Unknown layout: $1 (expected keep|flat-prefix|flat)" >&2
+      exit 1
+      ;;
+  esac
+  LAYOUT_SET=true
+}
+
+while (( $# )); do
+  case "$1" in
+    --path)
+      PACK_PATH_ARG="$2"; shift 2;;
+    --normalize)
+      NORMALIZE=true; NORM_SET=true; shift;;
+    --no-normalize)
+      NORMALIZE=false; NORM_SET=true; shift;;
+    --trim)
+      TRIM=true; TRIM_SET=true; shift;;
+    --no-trim)
+      TRIM=false; TRIM_SET=true; shift;;
+    --layout)
+      parse_layout_flag "$2"; shift 2;;
+    --)
+      shift; break;;
+    *)
+      break;;
+  esac
+done
+
+# ────────────────────────────────────────────────
 #  Intro / help
 # ────────────────────────────────────────────────
 echo "──────────────────────────────────────────────"
@@ -71,7 +124,11 @@ echo
 #  🎛️  Interactive input
 # ────────────────────────────────────────────────
 echo "Enter the full path of the sample pack you want to repack:"
-read -r PACK_PATH
+if [[ -n "$PACK_PATH_ARG" ]]; then
+  PACK_PATH="$PACK_PATH_ARG"
+else
+  read -r PACK_PATH
+fi
 
 # Strip optional quotes / surrounding spaces (handles drag-and-drop too)
 PACK_PATH="${PACK_PATH#\'}"; PACK_PATH="${PACK_PATH%\'}"
@@ -88,26 +145,32 @@ OUT_ROOT="${PACK_PATH%/}/REPACKED"
 OUT_DIR="$OUT_ROOT/$PACK_NAME"
 mkdir -p "$OUT_DIR"
 
-echo "Normalize audio (peak to 0 dBFS, no clipping)? (y/n) [y]"
-read -r norm_choice
-[[ "${norm_choice:l}" != "n" ]] && NORMALIZE=true || NORMALIZE=false
+if ! $NORM_SET >/dev/null 2>&1; then
+  echo "Normalize audio (peak to 0 dBFS, no clipping)? (y/n) [y]"
+  read -r norm_choice
+  [[ "${norm_choice:l}" != "n" ]] && NORMALIZE=true || NORMALIZE=false
+fi
 
-echo "Trim leading/trailing silence (soft)? (y/n) [n]"
-read -r trim_choice
-[[ "${trim_choice:l}" == "y" ]] && TRIM=true || TRIM=false
+if ! $TRIM_SET >/dev/null 2>&1; then
+  echo "Trim leading/trailing silence (soft)? (y/n) [n]"
+  read -r trim_choice
+  [[ "${trim_choice:l}" == "y" ]] && TRIM=true || TRIM=false
+fi
 
-echo
-echo "Choose output structure (enter 1, 2, or 3):"
-echo "  1 - Keep parent subfolders"
-echo "  2 - Flatten with parent prefix"
-echo "  3 - Flatten without prefix (default)"
-read -r org_choice
+if ! $LAYOUT_SET >/dev/null 2>&1; then
+  echo
+  echo "Choose output structure (enter 1, 2, or 3):"
+  echo "  1 - Keep parent subfolders"
+  echo "  2 - Flatten with parent prefix"
+  echo "  3 - Flatten without prefix (default)"
+  read -r org_choice
 
-case "$org_choice" in
-  1) STRUCTURE_MODE="keep_tree" ;;
-  2) STRUCTURE_MODE="flat_prefix" ;;
-  *) STRUCTURE_MODE="flat_noprefix" ;;
-esac
+  case "$org_choice" in
+    1) STRUCTURE_MODE="keep_tree" ;;
+    2) STRUCTURE_MODE="flat_prefix" ;;
+    *) STRUCTURE_MODE="flat_noprefix" ;;
+  esac
+fi
 
 echo
 echo "→ Selected mode: $STRUCTURE_MODE"
