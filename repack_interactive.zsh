@@ -46,6 +46,28 @@ if (( $# > 0 )); then
 fi
 
 # ────────────────────────────────────────────────
+#  Intro / help
+# ────────────────────────────────────────────────
+echo "──────────────────────────────────────────────"
+echo "Repacker"
+echo "──────────────────────────────────────────────"
+echo
+echo "This repacks vintage sample CDs into clean modern folders:"
+echo "• Merges stereo pairs ('-L.wav' + '-R.wav') into a single stereo WAV"
+echo "• Removes 'Partition *' levels from the folder structure"
+echo "• Optional normalization (peak to 0 dBFS) and silence trim (via SoX)"
+echo
+echo "Choose output structure:"
+echo "  1) Keep parent subfolders"
+echo "     → Preserves folders like '120 BPM', 'Kicks', etc."
+echo "  2) Flatten with parent prefix"
+echo "     → Single folder; filenames prefixed by their parent (e.g. '140_BPM_Loop1.wav')"
+echo "  3) Flatten without prefix  (default)"
+echo "     → Single folder; filenames unchanged"
+echo "──────────────────────────────────────────────"
+echo
+
+# ────────────────────────────────────────────────
 #  🎛️  Interactive input
 # ────────────────────────────────────────────────
 echo "Enter the full path of the sample pack you want to repack:"
@@ -74,9 +96,23 @@ echo "Trim leading/trailing silence (soft)? (y/n) [n]"
 read -r trim_choice
 [[ "${trim_choice:l}" == "y" ]] && TRIM=true || TRIM=false
 
-echo "Keep original subfolders (except 'Partition *')? (y = keep tree / n = flatten with parent prefix) [y]"
+echo
+echo "Choose output structure (enter 1, 2, or 3):"
+echo "  1 - Keep parent subfolders"
+echo "  2 - Flatten with parent prefix"
+echo "  3 - Flatten without prefix (default)"
 read -r org_choice
-[[ "${org_choice:l}" != "n" ]] && KEEP_TREE=true || KEEP_TREE=false
+
+case "$org_choice" in
+  1) STRUCTURE_MODE="keep_tree" ;;
+  2) STRUCTURE_MODE="flat_prefix" ;;
+  *) STRUCTURE_MODE="flat_noprefix" ;;
+esac
+
+echo
+echo "→ Selected mode: $STRUCTURE_MODE"
+echo "──────────────────────────────────────────────"
+echo
 
 # ────────────────────────────────────────────────
 #  ⚙️  Sox setup
@@ -143,19 +179,27 @@ decide_out_dir_and_prefix() {
   local rel_dir="$(clean_rel_dir_from_absdir "$(dirname "$src")")"
 
   local outd prefix
-  if $KEEP_TREE; then
-    # keep subfolders (minus Partition*)
-    if [[ -z "$rel_dir" || "$rel_dir" == "." ]]; then
-      outd="$OUT_DIR"          # root of pack in REPACKED
-    else
-      outd="$OUT_DIR/$rel_dir" # preserved sub-tree
-    fi
-    prefix=""                  # no filename prefix needed
-  else
-    # flatten into OUT_DIR, but prefix with parent folder to keep grouping
-    outd="$OUT_DIR"
-    prefix="$(safe_prefix "$parent")_"
-  fi
+  case "$STRUCTURE_MODE" in
+    keep_tree)
+      # keep subfolders (minus Partition*)
+      if [[ -z "$rel_dir" || "$rel_dir" == "." ]]; then
+        outd="$OUT_DIR"          # root of pack in REPACKED
+      else
+        outd="$OUT_DIR/$rel_dir" # preserved sub-tree
+      fi
+      prefix=""                  # no filename prefix needed
+      ;;
+    flat_prefix)
+      # flatten into OUT_DIR, prefix with parent folder to keep grouping
+      outd="$OUT_DIR"
+      prefix="$(safe_prefix "$parent")_"
+      ;;
+    flat_noprefix|*)
+      # flatten into OUT_DIR, filenames unchanged
+      outd="$OUT_DIR"
+      prefix=""
+      ;;
+  esac
 
   print -r -- "$outd|$prefix"
 }
