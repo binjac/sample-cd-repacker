@@ -1,4 +1,4 @@
-<img width="128px" src="samplem_ico.png" alt="Samplem Logo" align="left" border-radius="800px" />
+<img width="128px" src="samplem_ico.png" alt="Samplem Logo" align="left" />
 
 # Samplem
 
