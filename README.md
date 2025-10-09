@@ -104,8 +104,14 @@ chmod +x repack_interactive.zsh
 ```bash
 git clone https://github.com/binjac/samplem.git
 cd samplem
+chmod +x install.sh
 ./install.sh
+```
+
+After that, you can run from anywhere:
+```bash
 samplem --help
+samplem repack
 ```
 
 ### Requirements
