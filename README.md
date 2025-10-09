@@ -143,7 +143,7 @@ Samplem will evolve into a full modular audio toolkit:
 
 ---
 
-## 🗺️ Roadmap
+## Roadmap
 
 | Phase | Focus                | Description                                                              |
 | ----- | -------------------- | ------------------------------------------------------------------------ |
