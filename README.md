@@ -11,7 +11,7 @@ Bring order to your chaos of WAVs: merge, normalize, tag, and rediscover your ar
 
 ---
 
-## Installation & Usage
+## Installation & Usage (CLI)
 
 ### From source
 
@@ -34,12 +34,37 @@ samplem repack
 * macOS or Linux with zsh
 * [SoX](http://sox.sourceforge.net/) (`brew install sox` or `sudo apt install sox`)
 
-### Desktop App (Tauri UI)
+---
+
+## Desktop App (Tauri UI)
 
 Samplem also includes a lightweight desktop app (`samplem-ui`) built with [Tauri](https://tauri.app/) and TypeScript.
 It provides a drag-and-drop interface to process your sample folders.
 
-#### Run in development
+### Prerequisites (Desktop UI)
+
+> Tauri requires **both** a JavaScript toolchain **and** a Rust toolchain.
+
+* **Node.js** ≥ 18 and **npm** (or pnpm/yarn)
+* **Rust toolchain** (cargo, rustc) via `rustup`
+
+  * **macOS:** Xcode Command Line Tools → `xcode-select --install`
+  * **Windows:** Visual Studio → *Desktop development with C++* workload
+  * **Linux:** build tools & SSL headers (e.g. `build-essential pkg-config libssl-dev`)
+
+Quick install (macOS/Linux):
+
+```bash
+# Install rustup + cargo
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+# Load it for the current shell
+[ -f "$HOME/.cargo/env" ] && source "$HOME/.cargo/env"
+# Verify
+cargo -V
+rustc -V
+```
+
+### Run in development
 
 ```bash
 cd samplem/samplem-ui
@@ -53,9 +78,10 @@ This opens a desktop window where you can:
 * Toggle options (normalize, trim, layout)
 * Run the repack process and see logs in real time
 
-#### Build a standalone app (macOS)
+### Build a standalone app (macOS)
 
 ```bash
+cd samplem/samplem-ui
 npm run tauri build
 ```
 
@@ -66,6 +92,30 @@ samplem-ui/src-tauri/target/release/bundle/macos/
 ```
 
 You can drag it into `/Applications` for easier access.
+
+### Troubleshooting
+
+**Error:** `failed to run 'cargo metadata' command ... No such file or directory`
+
+*Cause:* Rust toolchain is missing or not on `PATH`.
+
+*Fix:*
+
+```bash
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+[ -f "$HOME/.cargo/env" ] && source "$HOME/.cargo/env"
+cargo -V
+npm run tauri dev
+```
+
+**macOS shows developer tools prompt**
+
+```bash
+xcode-select --install
+```
+
+**Windows linker/SDK errors**
+Install **Visual Studio** → *Desktop development with C++* workload, then retry.
 
 ---
 
@@ -139,7 +189,7 @@ Samplem will evolve into a full modular audio toolkit:
 * Spectral fingerprinting for similarity search
 * SQLite index for fast queries across large libraries
 * Terminal UI for browsing, tagging, and previewing samples interactively
-* Desktop drag-and-drop app (via Tauri + Swift integration)
+* Desktop drag-and-drop app enhancements (Tauri)
 
 ---
 
@@ -159,4 +209,4 @@ Samplem will evolve into a full modular audio toolkit:
 
 ## Vision
 
-Samplem aims to become the go-to open-source toolkit for sound archivists and producers a precise, reliable environment to restore, tag, and explore vast sample libraries from 90s CDs to modern field recordings.
+Samplem aims to become the go-to open-source toolkit for sound archivists and producers—a precise, reliable environment to restore, tag, and explore vast sample libraries from 90s CDs to modern field recordings.
